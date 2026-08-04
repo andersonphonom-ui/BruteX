@@ -34,10 +34,12 @@ parser.add_argument("--service", required=True,
 parser.add_argument("--port", type=int, help="Custom port (default: 22/21/80)")
 parser.add_argument("--timeout", type=int, default=3, help="Timeout in seconds")
 
-# HTTP specific
+parser.add_argument("-x", "--verbose", action="store_true", help="Show detailed attack info (verbose mode)")
 parser.add_argument("--user-field", default="username", help="HTTP username field name")
 parser.add_argument("--pass-field", default="password", help="HTTP password field name")
 parser.add_argument("--fail-text",  help="Text that appears on failed login")
+parser.add_argument("--cookie",     help="Cookie header (e.g. 'session=abc123')")
+parser.add_argument("--token",      help="Bearer token for Authorization header")
 
 args = parser.parse_args()
 
@@ -68,7 +70,8 @@ port = args.port or default_ports[args.service]
 console.print(f"[bold red]Service  : {args.service.upper()}[/bold red]")
 console.print(f"[bold red]Target   : {args.target}:{port}[/bold red]")
 console.print(f"[bold red]Usernames: {len(usernames)}[/bold red]")
-console.print(f"[bold red]Wordlist : {args.wordlist}[/bold red]\n")
+console.print(f"[bold red]Wordlist : {args.wordlist}[/bold red]")
+console.print(f"[bold red]Verbose  : {'ON 🔍' if args.verbose else 'OFF'}[/bold red]\n")
 console.print("[yellow]Starting attack...[/yellow]\n")
 
 start = time.time()
@@ -77,16 +80,19 @@ result = None
 # ─── Run attack ───────────────────────────────────────────────
 for username in usernames:
     if args.service == "ssh":
-        result = ssh_brute(args.target, port, username, args.wordlist, args.timeout)
+        result = ssh_brute(args.target, port, username, args.wordlist, args.timeout, args.verbose)
     elif args.service == "ftp":
-        result = ftp_brute(args.target, port, username, args.wordlist, args.timeout)
+        result = ftp_brute(args.target, port, username, args.wordlist, args.timeout, args.verbose)
     elif args.service == "http":
         result = http_brute(
             args.target, username, args.wordlist,
             user_field=args.user_field,
             pass_field=args.pass_field,
             fail_text=args.fail_text,
-            timeout=args.timeout
+            timeout=args.timeout,
+            verbose=args.verbose,
+            cookie=args.cookie,
+            token=args.token
         )
     if result:
         break
